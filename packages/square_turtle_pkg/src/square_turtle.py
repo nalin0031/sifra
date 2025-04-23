@@ -1,42 +1,44 @@
 #!/usr/bin/env python3
 
-# Import Dependencies
-import rospy 
-from geometry_msgs.msg import Twist 
-import time 
+import rospy
+from geometry_msgs.msg import Twist
 
-def move_turtle_square(): 
-    rospy.init_node('turtlesim_square_node', anonymous=True)
-    
-    # Init publisher
-    velocity_publisher = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10) 
-    rospy.loginfo("Turtles are great at drawing squares!")
+def move_square():
+    rospy.init_node('square_turtle', anonymous=True)
+    pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
+    move_cmd = Twist()
 
-    ########## YOUR CODE GOES HERE ##########
+    rate = rospy.Rate(10)  # 10 Hz
+    linear_speed = 1.0
+    angular_speed = 1.57   # approx 90 degrees/sec
+    side_time = 2.0        # forward duration in seconds
+    turn_time = 1.0        # turning 90 degrees
+
     while not rospy.is_shutdown():
-        
-        rate = rospy.Rate(1)  # 1 Hz, adjust as needed
-        
-        # Create a Twist message for moving forward 
-        cmd_vel_msg = Twist() 
-        cmd_vel_msg.linear.x = 2.0  # Linear velocity
-        velocity_publisher.publish(cmd_vel_msg) # Publish!
+        for _ in range(4):
+            # Move forward
+            move_cmd.linear.x = linear_speed
+            move_cmd.angular.z = 0.0
+            pub.publish(move_cmd)
+            rospy.sleep(side_time)
 
-        rate.sleep()
+            # Pause
+            move_cmd.linear.x = 0.0
+            pub.publish(move_cmd)
+            rospy.sleep(0.3)
 
-        # Create a Twist message for moving backward 
-        cmd_vel_msg = Twist()
-        cmd_vel_msg.linear.x = -2.0  # Linear velocity
-        velocity_publisher.publish(cmd_vel_msg) # Publish!
+            # Turn 90 degrees
+            move_cmd.angular.z = angular_speed
+            pub.publish(move_cmd)
+            rospy.sleep(turn_time)
 
-        rate.sleep()
+            # Pause
+            move_cmd.angular.z = 0.0
+            pub.publish(move_cmd)
+            rospy.sleep(0.3)
 
-        ###########################################
-
-if __name__ == '__main__': 
-
-    try: 
-        move_turtle_square() 
-    except rospy.ROSInterruptException: 
+if __name__ == '__main__':
+    try:
+        move_square()
+    except rospy.ROSInterruptException:
         pass
-        
