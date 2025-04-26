@@ -2,40 +2,43 @@
 
 import rospy
 from geometry_msgs.msg import Twist
+import time
 
 def move_square():
     rospy.init_node('square_turtle', anonymous=True)
     pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
     move_cmd = Twist()
+    rate = rospy.Rate(1)
 
-    rate = rospy.Rate(10)  # 10 Hz
-    linear_speed = 1.0
-    angular_speed = 1.57   # approx 90 degrees/sec
-    side_time = 2.0        # forward duration in seconds
-    turn_time = 1.0        # turning 90 degrees
+    side_length = 2.0  # seconds moving forward
+    turn_time = 1.0    # seconds turning 90 degrees
 
-    while not rospy.is_shutdown():
-        for _ in range(4):
-            # Move forward
-            move_cmd.linear.x = linear_speed
-            move_cmd.angular.z = 0.0
-            pub.publish(move_cmd)
-            rospy.sleep(side_time)
+    for _ in range(4):
+        # Move forward
+        move_cmd.linear.x = 2.0
+        move_cmd.angular.z = 0.0
+        pub.publish(move_cmd)
+        time.sleep(side_length)
 
-            # Pause
-            move_cmd.linear.x = 0.0
-            pub.publish(move_cmd)
-            rospy.sleep(0.3)
+        # Stop
+        move_cmd.linear.x = 0.0
+        pub.publish(move_cmd)
+        time.sleep(0.5)
 
-            # Turn 90 degrees
-            move_cmd.angular.z = angular_speed
-            pub.publish(move_cmd)
-            rospy.sleep(turn_time)
+        # Turn 90 degrees
+        move_cmd.angular.z = 1.57
+        pub.publish(move_cmd)
+        time.sleep(turn_time)
 
-            # Pause
-            move_cmd.angular.z = 0.0
-            pub.publish(move_cmd)
-            rospy.sleep(0.3)
+        # Stop
+        move_cmd.angular.z = 0.0
+        pub.publish(move_cmd)
+        time.sleep(0.5)
+
+    # Stop turtle finally
+    move_cmd.linear.x = 0.0
+    move_cmd.angular.z = 0.0
+    pub.publish(move_cmd)
 
 if __name__ == '__main__':
     try:
