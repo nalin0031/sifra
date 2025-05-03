@@ -13,7 +13,7 @@ def move_square():
     side_length = 2.0  # seconds moving forward
     turn_time = 1.0    # seconds turning 90 degrees
 
-    for _ in range(4):
+    for _ in range(40):
         # Move forward
         move_cmd.linear.x = 2.0
         move_cmd.angular.z = 0.0
