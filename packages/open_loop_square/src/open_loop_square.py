@@ -7,8 +7,8 @@ class Drive_Square:
     def __init__(self):
         self.cmd_msg = Twist2DStamped()
         rospy.init_node('drive_square_node', anonymous=True)
-        self.pub = rospy.Publisher('/sam/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=1)
-        rospy.Subscriber('/sam/fsm_node/mode', FSMState, self.fsm_callback, queue_size=1)
+        self.pub = rospy.Publisher('/sifra/car_cmd_switch_node/cmd', Twist2DStamped, queue_size=1)
+        rospy.Subscriber('/sifra/fsm_node/mode', FSMState, self.fsm_callback, queue_size=1)
         self.running = False
 
     def fsm_callback(self, msg):
