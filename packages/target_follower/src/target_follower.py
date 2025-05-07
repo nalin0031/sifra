@@ -6,17 +6,17 @@ from duckietown_msgs.msg import AprilTagDetectionArray
 
 class Target_Follower:
     def _init_(self):
-        # Initialize ROS node
         rospy.init_node('target_follower_node', anonymous=True)
         rospy.on_shutdown(self.clean_shutdown)
 
-        # Replace 'akandb' with your Duckiebot's name
-        self.robot_name = 'sifra'
+        self.robot_name = 'sifra'  
+
         self.cmd_vel_pub = rospy.Publisher(
             f'/{self.robot_name}/car_cmd_switch_node/cmd',
             Twist2DStamped,
             queue_size=1
         )
+
         rospy.Subscriber(
             f'/{self.robot_name}/apriltag_detector_node/detections',
             AprilTagDetectionArray,
@@ -24,14 +24,12 @@ class Target_Follower:
             queue_size=1
         )
 
-        # Robot state
         self.target_visible = False
         self.last_detection_time = rospy.Time.now()
 
-        # Timer to check if detection was lost
         rospy.Timer(rospy.Duration(0.1), self.search_and_follow)
 
-        rospy.spin()
+        rospy.spin()  # THIS is critical to keep the node alive
 
     def tag_callback(self, msg):
         if len(msg.detections) == 0:
@@ -53,7 +51,6 @@ class Target_Follower:
 
         rospy.loginfo("Following tag at x: %.2f, z: %.2f", x, z)
 
-        # Control parameters
         forward_gain = 0.5
         angular_gain = 3.0
         stop_distance = 0.25
@@ -71,11 +68,11 @@ class Target_Follower:
         self.cmd_vel_pub.publish(cmd_msg)
 
     def rotate_to_search(self):
-        rospy.loginfo("Searching for target... Rotating.")
+        rospy.loginfo("Searching for tag... rotating.")
         cmd_msg = Twist2DStamped()
         cmd_msg.header.stamp = rospy.Time.now()
         cmd_msg.v = 0.0
-        cmd_msg.omega = 2.0  # adjust rotation speed as needed
+        cmd_msg.omega = 2.0  # Spin in place
         self.cmd_vel_pub.publish(cmd_msg)
 
     def stop_robot(self):
