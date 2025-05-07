@@ -1,93 +1,68 @@
 #!/usr/bin/env python3
 
 import rospy
-from duckietown_msgs.msg import Twist2DStamped
-from duckietown_msgs.msg import AprilTagDetectionArray
+from duckietown_msgs.msg import AprilTagDetectionArray, Twist2DStamped
 
-class Target_Follower:
-    def _init_(self):
-        rospy.init_node('target_follower_node', anonymous=True)
-        rospy.on_shutdown(self.clean_shutdown)
+class TargetFollower:
+    def __init__(self):
+        rospy.init_node('target_follower_node')
 
-        self.robot_name = 'sifra'  
-
-        self.cmd_vel_pub = rospy.Publisher(
-            f'/{self.robot_name}/car_cmd_switch_node/cmd',
+        self.cmd_pub = rospy.Publisher(
+            '/sifra/car_cmd_switch_node/cmd',
             Twist2DStamped,
             queue_size=1
         )
 
         rospy.Subscriber(
-            f'/{self.robot_name}/apriltag_detector_node/detections',
+            '/sifra/apriltag_detector_node/detections',
             AprilTagDetectionArray,
-            self.tag_callback,
-            queue_size=1
+            self.callback
         )
 
-        self.target_visible = False
-        self.last_detection_time = rospy.Time.now()
+        self.twist = Twist2DStamped()
+        self.seeking = True
 
-        rospy.Timer(rospy.Duration(0.1), self.search_and_follow)
+        rospy.loginfo("[INFO] TargetFollower node initialized")
+        self.run()
 
-        rospy.spin()  # THIS is critical to keep the node alive
-
-    def tag_callback(self, msg):
-        if len(msg.detections) == 0:
+    def callback(self, data):
+        if not data.detections:
+            rospy.loginfo("[INFO] No detections. Seeking object...")
+            self.seek_object()
             return
-        
-        self.target_visible = True
-        self.last_detection_time = rospy.Time.now()
-        self.follow_target(msg.detections[0])
 
-    def search_and_follow(self, event):
-        time_since_last = rospy.Time.now() - self.last_detection_time
-        if time_since_last.to_sec() > 0.5:
-            self.target_visible = False
-            self.rotate_to_search()
+        rospy.loginfo("[INFO] AprilTag detected")
+        self.seeking = False
 
-    def follow_target(self, detection):
-        x = detection.transform.translation.x
-        z = detection.transform.translation.z
+        tag = data.detections[0]
+        x_offset = tag.transform.translation.x
+        rospy.loginfo(f"[INFO] x_offset: {x_offset:.2f}")
 
-        rospy.loginfo("Following tag at x: %.2f, z: %.2f", x, z)
+        self.twist.header.stamp = rospy.Time.now()
+        self.twist.v = 0.0
+        self.twist.omega = max(min(2.0 * (-x_offset), 1.0), -1.0)
 
-        forward_gain = 0.5
-        angular_gain = 3.0
-        stop_distance = 0.25
+        rospy.loginfo(f"[INFO] Sending cmd with omega: {self.twist.omega:.2f}")
+        self.cmd_pub.publish(self.twist)
 
-        cmd_msg = Twist2DStamped()
-        cmd_msg.header.stamp = rospy.Time.now()
-
-        if z > stop_distance:
-            cmd_msg.v = forward_gain * z
-            cmd_msg.omega = -angular_gain * x
-        else:
-            cmd_msg.v = 0.0
-            cmd_msg.omega = 0.0
-
-        self.cmd_vel_pub.publish(cmd_msg)
-
-    def rotate_to_search(self):
-        rospy.loginfo("Searching for tag... rotating.")
-        cmd_msg = Twist2DStamped()
-        cmd_msg.header.stamp = rospy.Time.now()
-        cmd_msg.v = 0.0
-        cmd_msg.omega = 2.0  # Spin in place
-        self.cmd_vel_pub.publish(cmd_msg)
+    def seek_object(self):
+        self.seeking = True
+        self.twist.header.stamp = rospy.Time.now()
+        self.twist.v = 0.0
+        self.twist.omega = 2.0  # rotation speed for searching
+        rospy.loginfo(f"[INFO] Seeking... sending cmd with omega: {self.twist.omega:.2f}")
+        self.cmd_pub.publish(self.twist)
 
     def stop_robot(self):
-        cmd_msg = Twist2DStamped()
-        cmd_msg.header.stamp = rospy.Time.now()
-        cmd_msg.v = 0.0
-        cmd_msg.omega = 0.0
-        self.cmd_vel_pub.publish(cmd_msg)
+        self.twist.header.stamp = rospy.Time.now()
+        self.twist.v = 0.0
+        self.twist.omega = 0.0
+        rospy.loginfo("[INFO] Stopping robot...")
+        self.cmd_pub.publish(self.twist)
 
-    def clean_shutdown(self):
-        rospy.loginfo("Shutting down. Stopping robot.")
-        self.stop_robot()
+    def run(self):
+        rospy.on_shutdown(self.stop_robot)
+        rospy.spin()
 
 if __name__ == '__main__':
-    try:
-        Target_Follower()
-    except rospy.ROSInterruptException:
-        pass
+    TargetFollower()
