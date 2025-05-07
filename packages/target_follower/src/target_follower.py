@@ -11,7 +11,7 @@ class Target_Follower:
         rospy.on_shutdown(self.clean_shutdown)
 
         # Replace 'akandb' with your Duckiebot's name
-        self.robot_name = 'akandb'
+        self.robot_name = 'sifra'
         self.cmd_vel_pub = rospy.Publisher(
             f'/{self.robot_name}/car_cmd_switch_node/cmd',
             Twist2DStamped,
