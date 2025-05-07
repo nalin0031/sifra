@@ -89,7 +89,7 @@ class Target_Follower:
         rospy.loginfo("Shutting down. Stopping robot.")
         self.stop_robot()
 
-if _name_ == '_main_':
+if __name__ == '__main__':
     try:
         Target_Follower()
     except rospy.ROSInterruptException:
